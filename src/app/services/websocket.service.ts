@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
+import { Usuario } from '../models/usuario';
 
 @Injectable({
   providedIn: 'root'
@@ -7,8 +8,11 @@ import { Socket } from 'ngx-socket-io';
 export class WebsocketService {
 
   public socketStatus:boolean = false;
+  // public usuario: Usuario = new Usuario('');
+  public usuario!: Usuario;
 
   constructor( private socket: Socket) {
+    this.cargarStorage();
     this.checkStatus();
   }
 
@@ -35,6 +39,38 @@ export class WebsocketService {
   // No olvidar cerrar el listener al cambiar de componente
   listen( evento: string ){
     return this.socket.fromEvent( evento );
+  }
+
+  // Para logearnos
+  loginWS( nombre: string ){
+    // Como no es asincrono lo convertimos a promesa
+    return new Promise<void>( (resolve, reject ) => {
+      this.emit('configurar-usuario', {nombre}, (resp:any) => {
+        console.log(resp);
+        this.usuario = new Usuario( nombre );
+        this.guardarStorage()
+        resolve();
+      });
+    });
+    // this.socket.emit('configurar-usuario', { nombre }, ( resp:any ) => {
+    //   console.log(resp);
+    // });
+  }
+
+  getUsuario(){
+    return this.usuario;
+  }
+
+  guardarStorage(){
+    localStorage.setItem('usuario',JSON.stringify( this.usuario ));
+  }
+
+  cargarStorage(){
+    const usuarioJSON = localStorage.getItem('usuario');
+    if (usuarioJSON !== null) {
+      this.usuario = JSON.parse( usuarioJSON );
+      this.loginWS( this.usuario.nombre );
+    }
   }
 
 }
